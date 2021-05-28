@@ -15,6 +15,7 @@ class User(models.Model):
 	gender 		= models.CharField(max_length=100, default='') # gender: 0-unkonw  1-male  2-female
 	call_order_list = models.CharField(max_length=1000, default='')
 	take_order_list = models.CharField(max_length=1000, default='')
+	avatar_url  = models.CharField(max_length=100, default='')
 
 
 
@@ -25,12 +26,15 @@ class Order(models.Model):
 	order_id 		= models.CharField(max_length=100, default='', primary_key=True)
 	caller_id		= models.CharField(max_length=100, default='')
 	helper_id 		= models.CharField(max_length=100, default='')
+	caller_name		= models.CharField(max_length=100, default='')
+	helper_name 	= models.CharField(max_length=100, default='')
 	src_address 	= models.CharField(max_length=100, default='')
 	dest_address 	= models.CharField(max_length=100, default='')
 	coin_cost 		= models.IntegerField(default=0)
-	descrption 		= models.CharField(max_length=1000, default='')
+	description 	= models.CharField(max_length=1000, default='')
 	secret_info 	= models.CharField(max_length=1000, default='')
 	order_status 	= models.IntegerField(default=0) # 0-waiting 1-running 2-complete
 	comment 		= models.CharField(max_length=1000, default='')
 	star_level 		= models.CharField(max_length=10, default='') # 1 2 3 4 5
-	# complete_time 	= models.TimeField()
+	create_time     = models.CharField(max_length=100, default='')
+	complete_time 	= models.CharField(max_length=100, default='')
