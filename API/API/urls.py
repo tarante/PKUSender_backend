@@ -22,4 +22,5 @@ urlpatterns = [
     path('pkusender/user/', views.QueryUser.as_view()),
     path('pkusender/order/', views.QueryOrder.as_view()),
     path('pkusender/order_num/', views.Query_order_num.as_view()),
+    path('pkusender/order_wait/', views.Query_order_wait.as_view()),
 ]

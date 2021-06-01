@@ -6,11 +6,11 @@ from rest_framework.response import Response
 
 from .models import User
 from .models import Order
+from .models import Order_wait
+from .models import Global
 
 import json
 
-global order_num
-order_num = 0
 
 
 class QueryUser(APIView):
@@ -21,18 +21,54 @@ class QueryUser(APIView):
         user_id = req["user_id"]
         query_type = req["type"]
 
-        data = User.objects.filter(user_id=user_id).values()
-        data = list(data)
+        data_ = User.objects.filter(user_id=user_id)
+        if len(data_):
+            data = User.objects.filter(user_id=user_id).values()
+            data = list(data)
 
-        if query_type == '0': #user_info
-            return Response(json.dumps(data))
-        elif query_type == '1': #call_order
-            return Response("call_order")
-        elif query_type == '2': #help_order
-            return Response("help_order")
+            if query_type == '0': #user_info
+                return Response(json.dumps(data))
+
+            elif query_type == '1': #call_order
+                call_order_list = User.objects.filter(user_id=user_id).values("call_order_list")[0]["call_order_list"]
+                order_list = call_order_list.split(",")
+                data = []
+                for i in range(len(order_list)):
+                    order_id = order_list[i]
+                    data1 = Order.objects.filter(order_id=order_id).values()
+                    data1 = list(data1)
+                    data  = data + data1
+
+                return Response(json.dumps(data))
+
+            elif query_type == '2': #take_order
+                take_order_list = User.objects.filter(user_id=user_id).values("take_order_list")[0]["take_order_list"]
+                order_list = take_order_list.split(",")
+                data = []
+                for i in range(len(order_list)):
+                    order_id = order_list[i]
+                    data1 = Order.objects.filter(order_id=order_id).values()
+                    data1 = list(data1)
+                    data  = data + data1
+
+                return Response(json.dumps(data))
 
 
-        return Response("type error!")
+            elif query_type == '3': #history_order
+                history_order_list = User.objects.filter(user_id=user_id).values("history_order_list")[0]["history_order_list"]
+                order_list = history_order_list.split(",")
+                data = []
+                for i in range(len(order_list)):
+                    order_id = order_list[i]
+                    data1 = Order.objects.filter(order_id=order_id).values()
+                    data1 = list(data1)
+                    data  = data + data1
+
+                return Response(json.dumps(data))
+
+            return Response("type error!")
+
+        return Response("user_id error!")
 
     @staticmethod
     def post(request):
@@ -42,7 +78,8 @@ class QueryUser(APIView):
 
         query_type  = req["type"]
 
-        if query_type == '0':
+        if query_type == "0":
+
             user_id     = req["user_id"]
             user_name   = req["user_name"]
             address     = req["address"]
@@ -50,16 +87,22 @@ class QueryUser(APIView):
             coin_num    = int(req["coin_num"])
             gender      = req["gender"]
             avatar_url  = req["avatar_url"]
+
+            user = User.objects.filter(user_id=user_id)
+            if len(user):
+                return Response("user_id exists!")
+
             user = User(user_id=user_id, user_name=user_name, 
                     address=address, credit=credit, coin_num=coin_num, 
-                    gender=gender, avatar_url=avatar_url)
+                    gender=gender, avatar_url=avatar_url)   
             user.save()
+            return Response("user create!")
 
         elif query_type == '10':
             user_id     = req["user_id"]
             user_name   = req["user_name"]
             User.objects.filter(user_id=user_id).update(user_name=user_name)
-            return Response("all update!")
+            return Response("user_name update!")
 
         elif query_type == '11':
             user_id     = req["user_id"]
@@ -108,7 +151,8 @@ class QueryUser(APIView):
             User.objects.filter(user_id=user_id).update(avatar_url=avatar_url)
             return Response("all update!")
 
-        return Response("type error!")#不需要返回数据
+        print("user post type error")
+        return Response("type error!")
 
 
 
@@ -131,7 +175,7 @@ class QueryOrder(APIView):
         # comment      = Order.objects.filter(order_id=order_id).values("comment")
         # star_level   = Order.objects.filter(order_id=order_id).values("star_level")
 
-        data = User.objects.filter(order_id=order_id).values()
+        data = Order.objects.filter(order_id=order_id).values()
         data = list(data)
 
         return Response(json.dumps(data))
@@ -153,24 +197,32 @@ class QueryOrder(APIView):
             dest_address    = req["dest_address"]
             order_status    = int(req["order_status"])
             coin_cost       = int(req["coin_cost"])
-            description      = req["description"]
+            description     = req["description"]
             secret_info     = req["secret_info"]
             comment         = req["comment"]
             star_level      = req["star_level"]
             create_time     = req["create_time"]
 
-            caller_name = User.objects.filter(user_id=caller_id).values("user_name")
-            helper_name = User.objects.filter(user_id=helper_id).values("user_name")
+            if Order.objects.filter(order_id=order_id).exists():
+                return Response("order_id exists!")
 
-            order = Order(order_id=order_id, caller_id=caller_id, helper_id=helper_id, 
-                caller_name=caller_name, helper_name=helper_name,
-                src_address=src_address, dest_address=dest_address, order_status=order_status,
-                coin_cost=coin_cost, description=description, secret_info=secret_info,
-                comment=comment, star_level=star_level)
-            order.save()
-            order_num += 1
+            if User.objects.filter(user_id=caller_id).exists():
+                caller_name = User.objects.filter(user_id=caller_id).values("user_name")
 
-            return Response("order create!")
+                order = Order(order_id=order_id, caller_id=caller_id, helper_id=helper_id, 
+                    caller_name=caller_name, src_address=src_address, dest_address=dest_address, 
+                    order_status=order_status, coin_cost=coin_cost, description=description, 
+                    secret_info=secret_info, comment=comment, star_level=star_level, create_time=create_time)
+                order.save()
+
+                Order_wait(order_id=order_id).save()
+
+                order_num = Global.objects.filter(name="order_num").values("value")[0]["value"] + 1
+                Global.objects.filter(name="order_num").update(value=order_num)
+
+                return Response("order create!")
+
+            return Response("caller not found!")
 
         elif query_type == '10':
             order_id        = req["order_id"]
@@ -178,17 +230,16 @@ class QueryOrder(APIView):
             Order.objects.filter(order_id=order_id).update(helper_id=helper_id)
             Order.objects.filter(order_id=order_id).update(order_status=1)
 
-            caller_id = Order.objects.filter(order_id=order_id).values("caller_id")
-            caller = User.objects.get(user_id=caller_id)
-            new_call_order_list = caller.values("call_order_list") + "," + order_id
-            caller.update(call_order_list=new_call_order_list)
+            caller_id = Order.objects.filter(order_id=order_id).values("caller_id")[0]["caller_id"]
+            new_call_order_list = User.objects.filter(user_id=caller_id).values("call_order_list")[0]["call_order_list"] + "," + order_id
+            User.objects.filter(user_id=caller_id).update(call_order_list=new_call_order_list)
 
-            helper = User.objects.filter(user_id=helper_id)
-            helper_name = helper.values("user_name")
+            helper_name = User.objects.filter(user_id=helper_id).values("user_name")[0]["user_name"]
             Order.objects.filter(order_id=order_id).update(helper_name=helper_name)
-            new_help_order_list = helper.values("help_order_list") + "," + order_id
-            helper.update(help_order_list=new_help_order_list)
+            new_help_order_list = User.objects.filter(user_id=helper_id).values("take_order_list")[0]["take_order_list"] + "," + order_id
+            User.objects.filter(user_id=helper_id).update(take_order_list=new_help_order_list)
 
+            Order_wait.objects.filter(order_id=order_id).delete()
 
             return Response("helper_id update!")
 
@@ -206,9 +257,36 @@ class QueryOrder(APIView):
 
         elif query_type == '13':
             order_id        = req["order_id"]
-            complete_time   = int(req["complete_time"])
+            complete_time   = req["complete_time"]
             Order.objects.filter(order_id=order_id).update(complete_time=complete_time)
             Order.objects.filter(order_id=order_id).update(order_status=2)
+
+            caller_id = Order.objects.filter(order_id=order_id).values("caller_id")[0]["caller_id"]
+            if User.objects.filter(user_id=caller_id).exists():
+                caller_order_list = User.objects.filter(user_id=caller_id).values("call_order_list")[0]["call_order_list"]
+                order_list = caller_order_list.split(",")
+                order_list.remove(order_id)
+                str = ","
+                new_order_list = str.join(order_list)
+                User.objects.filter(user_id=caller_id).update(call_order_list=new_order_list)
+
+                new_history_order_list = User.objects.filter(user_id=caller_id).values("history_order_list")[0]["history_order_list"] + "," + order_id
+                User.objects.filter(user_id=caller_id).update(history_order_list=new_history_order_list)
+
+            helper_id = Order.objects.filter(order_id=order_id).values("helper_id")[0]["helper_id"]
+            if User.objects.filter(user_id=helper_id).exists():
+                helper_order_list = User.objects.filter(user_id=helper_id).values("take_order_list")[0]["take_order_list"]
+                order_list = helper_order_list.split(",")
+                order_list.remove(order_id)
+                str = ","
+                new_order_list = str.join(order_list)
+                User.objects.filter(user_id=helper_id).update(take_order_list=new_order_list)
+
+                new_history_order_list = User.objects.filter(user_id=helper_id).values("history_order_list")[0]["history_order_list"] + "," + order_id
+                User.objects.filter(user_id=helper_id).update(history_order_list=new_history_order_list)
+
+            Order_wait.objects.filter(order_id=order_id).delete()
+
             return Response("order_status update!")
 
         elif query_type == '14':
@@ -243,29 +321,27 @@ class QueryOrder(APIView):
 
         elif query_type == '19':
             order_id        = req["order_id"]
-            order = Order.objects.get(order_id=order_id)
 
-            caller_id = order.values("caller_id")
-            caller = User.objects.get(user_id=caller_id)
-            if caller.exists():
-                caller_order_list = caller.values("call_order_list")
+            caller_id = Order.objects.filter(order_id=order_id).values("caller_id")[0]["caller_id"]
+            if User.objects.filter(user_id=caller_id).exists():
+                caller_order_list = User.objects.filter(user_id=caller_id).values("call_order_list")[0]["call_order_list"]
                 order_list = caller_order_list.split(",")
-                order_list.remove("order_id")
+                order_list.remove(order_id)
                 str = ","
                 new_order_list = str.join(order_list)
-                caller.update(call_order_list=new_order_list)
+                User.objects.filter(user_id=caller_id).update(call_order_list=new_order_list)
 
-            helper_id = order.values("helper_id")
-            helper = User.objects.get(user_id=helper_id)
-            if helper.exists():
-                helper_order_list = helper.values("take_order_list")
+            helper_id = Order.objects.filter(order_id=order_id).values("helper_id")[0]["helper_id"]
+            if User.objects.filter(user_id=helper_id).exists():
+                helper_order_list = User.objects.filter(user_id=helper_id).values("take_order_list")[0]["take_order_list"]
                 order_list = helper_order_list.split(",")
-                order_list.remove("order_id")
+                order_list.remove(order_id)
                 str = ","
                 new_order_list = str.join(order_list)
-                caller.update(take_order_list=new_order_list)
+                User.objects.filter(user_id=helper_id).update(take_order_list=new_order_list)
 
-            order.delete()
+            Order.objects.filter(order_id=order_id).delete()
+            Order_wait.objects.filter(order_id=order_id).delete()
 
             return Response("Order delete!")
 
@@ -279,7 +355,7 @@ class QueryOrder(APIView):
             dest_address    = req["dest_address"]
             order_status    = int(req["order_status"])
             coin_cost       = int(req["coin_cost"])
-            description      = req["description"]
+            description     = req["description"]
             secret_info     = req["secret_info"]
             comment         = req["comment"]
             star_level      = req["star_level"]
@@ -304,4 +380,41 @@ class QueryOrder(APIView):
 class Query_order_num(APIView):
     @staticmethod
     def get(request):
+        order_num = Global.objects.filter(name="order_num").values("value")[0]["value"]
         return Response(str(order_num))
+    @staticmethod
+    def post(request):
+        req = request.data
+        order_num = int(req["order_num"])
+        #Global(name="order_num", value=order_num).save()
+        Global.objects.filter(name="order_num").update(value=order_num)
+        return Response("update succeed!")
+
+
+class Query_order_wait(APIView):
+    @staticmethod
+    def get(request):
+        req = request.query_params.dict()
+        index = int(req["index"])
+        num = int(req["num"])
+
+        order_list = Order_wait.objects.filter().order_by('order_id')
+
+        data = []
+        for i in range(index, min(index+num, len(order_list))):
+            order_id = order_list[i].get_order_id()
+            data1 = Order.objects.filter(order_id=order_id).values()
+            data1 = list(data1)
+            data  = data + data1
+
+        return Response(json.dumps(data))
+
+    @staticmethod
+    def post(request):
+        req = request.data
+        order_id = req["order_id"]
+        Order_wait(order_id=order_id).save()
+        return Response("post succeed!")
+
+
+
