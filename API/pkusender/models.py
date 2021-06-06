@@ -36,6 +36,7 @@ class Order(models.Model):
 	description 	= models.CharField(max_length=1000, default='')
 	secret_info 	= models.CharField(max_length=1000, default='')
 	order_status 	= models.IntegerField(default=0) # 0-waiting 1-running 2-complete
+	order_type		= models.IntegerField(default=0) # 0-other 1-express 2-take-out 3-object
 	comment 		= models.CharField(max_length=1000, default='')
 	star_level 		= models.CharField(max_length=10, default='') # 1 2 3 4 5
 	create_time     = models.CharField(max_length=100, default='')

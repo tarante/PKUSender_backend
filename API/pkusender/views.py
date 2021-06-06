@@ -149,7 +149,7 @@ class QueryUser(APIView):
             User.objects.filter(user_id=user_id).update(coin_num=coin_num)
             User.objects.filter(user_id=user_id).update(gender=gender)
             User.objects.filter(user_id=user_id).update(avatar_url=avatar_url)
-            return Response("all update!")
+            return Response("user update!")
 
         print("user post type error")
         return Response("type error!")
@@ -196,6 +196,7 @@ class QueryOrder(APIView):
             src_address     = req["src_address"]
             dest_address    = req["dest_address"]
             order_status    = int(req["order_status"])
+            order_type      = int(req["order_type"])
             coin_cost       = int(req["coin_cost"])
             description     = req["description"]
             secret_info     = req["secret_info"]
@@ -206,12 +207,17 @@ class QueryOrder(APIView):
             if Order.objects.filter(order_id=order_id).exists():
                 return Response("order_id exists!")
 
+            print(caller_id)
+
             if User.objects.filter(user_id=caller_id).exists():
-                caller_name = User.objects.filter(user_id=caller_id).values("user_name")
+                caller_name = User.objects.filter(user_id=caller_id).values("user_name")[0]["user_name"]
+
+                new_call_order_list = User.objects.filter(user_id=caller_id).values("call_order_list")[0]["call_order_list"] + "," + order_id
+                User.objects.filter(user_id=caller_id).update(call_order_list=new_call_order_list)
 
                 order = Order(order_id=order_id, caller_id=caller_id, helper_id=helper_id, 
                     caller_name=caller_name, src_address=src_address, dest_address=dest_address, 
-                    order_status=order_status, coin_cost=coin_cost, description=description, 
+                    order_status=order_status, order_type=order_type, coin_cost=coin_cost, description=description, 
                     secret_info=secret_info, comment=comment, star_level=star_level, create_time=create_time)
                 order.save()
 
@@ -230,9 +236,9 @@ class QueryOrder(APIView):
             Order.objects.filter(order_id=order_id).update(helper_id=helper_id)
             Order.objects.filter(order_id=order_id).update(order_status=1)
 
-            caller_id = Order.objects.filter(order_id=order_id).values("caller_id")[0]["caller_id"]
-            new_call_order_list = User.objects.filter(user_id=caller_id).values("call_order_list")[0]["call_order_list"] + "," + order_id
-            User.objects.filter(user_id=caller_id).update(call_order_list=new_call_order_list)
+            # caller_id = Order.objects.filter(order_id=order_id).values("caller_id")[0]["caller_id"]
+            # new_call_order_list = User.objects.filter(user_id=caller_id).values("call_order_list")[0]["call_order_list"] + "," + order_id
+            # User.objects.filter(user_id=caller_id).update(call_order_list=new_call_order_list)
 
             helper_name = User.objects.filter(user_id=helper_id).values("user_name")[0]["user_name"]
             Order.objects.filter(order_id=order_id).update(helper_name=helper_name)
@@ -273,6 +279,10 @@ class QueryOrder(APIView):
                 new_history_order_list = User.objects.filter(user_id=caller_id).values("history_order_list")[0]["history_order_list"] + "," + order_id
                 User.objects.filter(user_id=caller_id).update(history_order_list=new_history_order_list)
 
+                coin_cost = Order.objects.filter(order_id=order_id).values("coin_cost")[0]["coin_cost"]
+                new_coin_num = User.objects.filter(user_id=caller_id).values("coin_num")[0]["coin_num"] - coin_cost
+                User.objects.filter(user_id=caller_id).update(coin_num=new_coin_num)
+
             helper_id = Order.objects.filter(order_id=order_id).values("helper_id")[0]["helper_id"]
             if User.objects.filter(user_id=helper_id).exists():
                 helper_order_list = User.objects.filter(user_id=helper_id).values("take_order_list")[0]["take_order_list"]
@@ -284,6 +294,10 @@ class QueryOrder(APIView):
 
                 new_history_order_list = User.objects.filter(user_id=helper_id).values("history_order_list")[0]["history_order_list"] + "," + order_id
                 User.objects.filter(user_id=helper_id).update(history_order_list=new_history_order_list)
+
+                coin_cost = Order.objects.filter(order_id=order_id).values("coin_cost")[0]["coin_cost"]
+                new_coin_num = User.objects.filter(user_id=helper_id).values("coin_num")[0]["coin_num"] + coin_cost
+                User.objects.filter(user_id=helper_id).update(coin_num=new_coin_num)
 
             Order_wait.objects.filter(order_id=order_id).delete()
 
@@ -354,6 +368,7 @@ class QueryOrder(APIView):
             src_address     = req["src_address"]
             dest_address    = req["dest_address"]
             order_status    = int(req["order_status"])
+            order_type      = int(req["order_type"])
             coin_cost       = int(req["coin_cost"])
             description     = req["description"]
             secret_info     = req["secret_info"]
@@ -366,6 +381,7 @@ class QueryOrder(APIView):
             Order.objects.filter(order_id=order_id).update(src_address=src_address)
             Order.objects.filter(order_id=order_id).update(dest_address=dest_address)
             Order.objects.filter(order_id=order_id).update(order_status=order_status)
+            Order.objects.filter(order_id=order_id).update(order_type=order_type)
             Order.objects.filter(order_id=order_id).update(coin_cost=coin_cost)
             Order.objects.filter(order_id=order_id).update(description=description)
             Order.objects.filter(order_id=order_id).update(secret_info=secret_info)
