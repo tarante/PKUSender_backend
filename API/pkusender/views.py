@@ -76,6 +76,8 @@ class QueryUser(APIView):
         """
         req = request.data
 
+        # print(len(req), req)
+
         query_type  = req["type"]
 
         if query_type == "0":
@@ -279,9 +281,9 @@ class QueryOrder(APIView):
                 new_history_order_list = User.objects.filter(user_id=caller_id).values("history_order_list")[0]["history_order_list"] + "," + order_id
                 User.objects.filter(user_id=caller_id).update(history_order_list=new_history_order_list)
 
-                coin_cost = Order.objects.filter(order_id=order_id).values("coin_cost")[0]["coin_cost"]
-                new_coin_num = User.objects.filter(user_id=caller_id).values("coin_num")[0]["coin_num"] - coin_cost
-                User.objects.filter(user_id=caller_id).update(coin_num=new_coin_num)
+                # coin_cost = Order.objects.filter(order_id=order_id).values("coin_cost")[0]["coin_cost"]
+                # new_coin_num = User.objects.filter(user_id=caller_id).values("coin_num")[0]["coin_num"] - coin_cost
+                # User.objects.filter(user_id=caller_id).update(coin_num=new_coin_num)
 
             helper_id = Order.objects.filter(order_id=order_id).values("helper_id")[0]["helper_id"]
             if User.objects.filter(user_id=helper_id).exists():
@@ -414,7 +416,7 @@ class Query_order_wait(APIView):
         index = int(req["index"])
         num = int(req["num"])
 
-        order_list = Order_wait.objects.filter().order_by('order_id')
+        order_list = Order_wait.objects.filter().order_by('-order_id')
 
         data = []
         for i in range(index, min(index+num, len(order_list))):
